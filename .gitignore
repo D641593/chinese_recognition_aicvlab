@@ -3,3 +3,6 @@ train_models
 __pycache__
 token.txt
 *.log
+*.zip
+*.jpg
+

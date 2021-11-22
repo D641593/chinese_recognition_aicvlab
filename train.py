@@ -18,7 +18,7 @@ def train():
     batch_size = 8
     max_length = 30+1
     # data_loader
-    dataset_STR = STRDataset(root='train_data',labelPath='train_crop_list.txt',charsetPath='chinese_cht_dict.txt')
+    dataset_STR = STRDataset(root='train_data',labelPath='public_crop_list.txt',charsetPath='chinese_cht_dict.txt')
     data_loader = torch.utils.data.DataLoader(
         dataset_STR, batch_size = batch_size, shuffle = True, num_workers = 0, collate_fn = collate_fn
     )
@@ -35,11 +35,11 @@ def train():
     model.train()
     # parameter for training and save
     step = 1
-    epoches = 500
+    epoches = 1
     log_step = 100
     epoch_datanum = math.ceil(dataset_STR.__len__() / batch_size)
     model_save_root = 'train_models'
-    model_save_dir = "first_STR_model"
+    model_save_dir = "public_STR_model"
     if not os.path.exists(os.path.join(os.getcwd(),model_save_root,model_save_dir)):
         os.mkdir(os.path.join(os.getcwd(),model_save_root,model_save_dir))
     model_save_epoch = 50 # save model every xxx epoch while training
