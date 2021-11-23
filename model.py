@@ -4,10 +4,10 @@ from reAttn import *
 from positionAttn import *
 
 class clsScore(nn.Module):
-    def __init__(self, num_class):
+    def __init__(self, num_class,max_length):
         super(clsScore,self).__init__()
         self.backbone = ResNetAttn()
-        max_length = 30 + 1
+        self.max_length = max_length
         self.out_channels = 512
         self.attn = positionAttention(max_length=max_length)
         self.cls = nn.Linear(self.out_channels, num_class)

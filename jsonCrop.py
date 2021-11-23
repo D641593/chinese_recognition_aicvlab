@@ -6,21 +6,9 @@ import os
 import re
 
 
-def checkChinese(line:str):
-    chineselimit = re.compile(u"[\u4e00-\u9fa5]+")
-    if chineselimit.fullmatch(line) is not None:
-        return line
-    flag = 0
-    new_line = ""
-    for i in range(len(line)):
-        if chineselimit.match(line[i]) is not None:
-            flag = 0
-            new_line += line[i]
-        else:
-            if flag == 0:
-                new_line += "@"
-                flag = 1
-    return new_line
+def doNotCareCheck(line:str):
+    line = line.replace("###","@")
+    return line
 
 def getTargetPoints(points):
     maxh = max(points[:,1])
@@ -29,7 +17,7 @@ def getTargetPoints(points):
     minw = min(points[:,0])
     h = maxh - minh
     w = maxw - minw
-    return np.array([[0,0],[w,0],[w,h],[0,h]],dtype=np.float32),(w,h)
+    return np.array([[0,0],[w,0],[w,h],[0,h]],dtype=np.float32),(int(w),int(h))
 
 def warpImg(img,points):
     points = np.array(points,dtype=np.float32)
@@ -42,15 +30,15 @@ def warpImg(img,points):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--main_dir", help = 'path of the folder of train_data', type = str,
-                        default="PaddleOCR/train_data/")
+                        default="train_data/")
     parser.add_argument("--json_dir", help = 'path of the folder of json file', type = str,
-                        default="train/json/")
+                        default="train_high/json/")
     parser.add_argument("--img_dir",help='path of the folder of image file',type = str,
-                        default='train/img/')
+                        default='train_high/img/')
     parser.add_argument("--output_dir", help = 'output path of crop image', type = str,
-                        default='train_crop/')
+                        default='train_high_crop2/')
     parser.add_argument("--label_fileName", help = 'output path of fileName.txt', type = str,
-                        default='train_crop_list.txt')  
+                        default='train_high_crop_list2.txt')  
 
     args = parser.parse_args()
     main_dir = args.main_dir
@@ -82,10 +70,10 @@ if __name__ == '__main__':
                 if group_id == 1: # 中文單字
                     continue
                 label = shape['label']
-                if label == "":
+                if label == "" or label == "###":
                     label = "@"
                 points = shape['points']
-                label = checkChinese(label)
+                label = doNotCareCheck(label)
                 transImg = warpImg(img,points)
                 h,w = transImg.shape[:2]
                 if h > w:

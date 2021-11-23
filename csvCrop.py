@@ -5,22 +5,9 @@ import cv2
 import os
 import re
 
-
-def checkChinese(line:str):
-    chineselimit = re.compile(u"[\u4e00-\u9fa5]+")
-    if chineselimit.fullmatch(line) is not None:
-        return line
-    flag = 0
-    new_line = ""
-    for i in range(len(line)):
-        if chineselimit.match(line[i]) is not None:
-            flag = 0
-            new_line += line[i]
-        else:
-            if flag == 0:
-                new_line += "@"
-                flag = 1
-    return new_line
+def doNotCareCheck(line:str):
+    line = line.replace("###","@")
+    return line
 
 def getTargetPoints(points):
     maxh = max(points[:,1])
@@ -29,7 +16,7 @@ def getTargetPoints(points):
     minw = min(points[:,0])
     h = maxh - minh
     w = maxw - minw
-    return np.array([[0,0],[w,0],[w,h],[0,h]],dtype=np.float32),(w,h)
+    return np.array([[0,0],[w,0],[w,h],[0,h]],dtype=np.float32),(int(w),int(h))
 
 def orderPoints(points):
     mw = points[:,0].mean()
@@ -74,15 +61,15 @@ def warpImg(img,points):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--main_dir", help = 'path of the folder of train_data', type = str,
-                        default="PaddleOCR/train_data/")
+                        default="train_data/")
     parser.add_argument("--csvfileName", help = 'path of the csv file', type = str,
-                        default="public/Task2_Public_String_Coordinate.csv")
+                        default="public/task2_answer.csv")
     parser.add_argument("--img_dir",help='path of the folder of image file',type = str,
                         default='public/img_public/')
     parser.add_argument("--output_dir", help = 'output path of crop image', type = str,
-                        default='public_crop/')
+                        default='public_crop2/')
     parser.add_argument("--label_fileName", help = 'output path of fileName.txt', type = str,
-                        default='public_crop_list.txt')  
+                        default='public_crop_list2.txt')  
 
     args = parser.parse_args()
     main_dir = args.main_dir
@@ -98,7 +85,6 @@ if __name__ == '__main__':
         os.mkdir(os.path.join(main_dir,output_dir))
         print("creating folder : ",os.path.join(main_dir,output_dir))
 
-    chineselimit = re.compile(u"[\u4e00-\u9fa5]+")
     lastImgfname = ""
     num = 0
     noLabelOutput = 0
@@ -125,7 +111,7 @@ if __name__ == '__main__':
         if not noLabelOutput:
           try : 
             label = row[9]
-            label = checkChinese(label)
+            label = doNotCareCheck(label)
             txtrow = os.path.join(output_dir,transImgfname)+"\t"+label+"\n"
             txt.append(txtrow)
           except IndexError:

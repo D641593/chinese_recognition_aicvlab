@@ -4,6 +4,7 @@ from dataset import *
 import torch.optim as optim
 import logging
 import os
+from Levenshtein import distance as lvd
 
 def train():
     # logging
@@ -16,16 +17,20 @@ def train():
     print('train using ',deviceName)
     # parameter for dataLoader
     batch_size = 8
-    max_length = 30+1
+    max_length = 40+1
     # data_loader
-    dataset_STR = STRDataset(root='train_data',labelPath='public_crop_list.txt',charsetPath='chinese_cht_dict.txt')
+    dataset_STR = STRDataset(root='train_data',labelPath='train_high_crop_list2.txt',charsetPath='myDict.txt')
     data_loader = torch.utils.data.DataLoader(
         dataset_STR, batch_size = batch_size, shuffle = True, num_workers = 0, collate_fn = collate_fn
+    )
+    dataset_STR_eval = STRDataset(root='train_data',labelPath='public_crop_list2.txt',charsetPath='myDict.txt')
+    data_loader_eval = torch.utils.data.DataLoader(
+        dataset_STR_eval, batch_size = 1, shuffle = False, num_workers = 0, collate_fn = collate_fn
     )
     # chars dictionary
     charsDict = dataset_STR.charsDict
     # model
-    model = clsScore(len(charsDict.keys()))
+    model = clsScore(len(charsDict.keys()),max_length)
     model.to(device)
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr = 0.0001)
@@ -35,14 +40,17 @@ def train():
     model.train()
     # parameter for training and save
     step = 1
-    epoches = 1
+    epoches = 300
     log_step = 100
+    best_eval = 0.0
+    model_save_flag = False
     epoch_datanum = math.ceil(dataset_STR.__len__() / batch_size)
     model_save_root = 'train_models'
-    model_save_dir = "public_STR_model"
+    model_save_dir = "merge_STR_model"
     if not os.path.exists(os.path.join(os.getcwd(),model_save_root,model_save_dir)):
         os.mkdir(os.path.join(os.getcwd(),model_save_root,model_save_dir))
     model_save_epoch = 50 # save model every xxx epoch while training
+    model_eval_epoch = 30 # eval model every xxx epoch while training
     # epoch for training
     for epoch in range(epoches):
         for imgs,labels in data_loader:
@@ -54,7 +62,6 @@ def train():
             # pred and calculate ctc loss
             optimizer.zero_grad()
             outputs = model(imgs) # Batch_size / max_length / class_num(chars_num)
-            # print(sum(outputs[0,0,:]))
             outputs = outputs.permute(1,0,2) #  max_length / Batch_size / class_num(chars_num) for ctc loss
             outputLength = torch.full(size=(outputs.shape[1],),fill_value=max_length,dtype=torch.long)
             loss = loss_fn(outputs,labelIdx,outputLength,labelLength)
@@ -66,23 +73,55 @@ def train():
             lr_scheduler.step()
             if step % log_step == 0:
                 logging.info("epoch: [%d] step: %d / %d, loss is %3.5f, lr : %3.5f"%(epoch,step%epoch_datanum,epoch_datanum,loss,optimizer.param_groups[0]["lr"]))
-                print("epoch: [%d] step: %d / %d, loss is %3.5f, lr : %3.5f"%(epoch,step%epoch_datanum,epoch_datanum,loss,optimizer.param_groups[0]["lr"]))
+                # print("epoch: [%d] step: %d / %d, loss is %3.5f, lr : %3.5f"%(epoch,step%epoch_datanum,epoch_datanum,loss,optimizer.param_groups[0]["lr"]))
             step += 1
         
         # model eval
-        # if epoch%model_eval_epoch == 0:
-
+        if epoch%model_eval_epoch == 0:
+            logging.info("epoch %d eval!"%(epoch))
+            score = eval(data_loader_eval,model,device,charsDict)
+            logging.info("1_NED : " + str(score))
+            if score > best_eval:
+                model_save_flag = True
         # model save
-        if epoch % model_save_epoch == 0:
+        if epoch % model_save_epoch == 0 or model_save_flag:
             model_save_name = "epoch_"+str(epoch)+".pth"
             path = os.path.join(model_save_root,model_save_dir,model_save_name)
             torch.save(model.state_dict(),path)
             logging.info("epoch %d save! model save at %s, loss is %f"%(epoch,path,loss))
+            model_save_flag = False
     # model save after train
     model_save_name = 'final.pth'
     path = os.path.join(model_save_root,model_save_dir,model_save_name)
     torch.save(model.state_dict(),path)
     logging.info("That's it! model save at "+str(path))
+
+def eval(dataloader,model,device,charsDict):
+    model.eval()
+    preds = []
+    ans = []
+    for imgs,labels in dataloader:
+        imgs = torch.stack(list(img.to(device) for img in imgs))
+        labels = list(labels)
+        outputs = model(imgs) # Batch_size / max_length / class_num(chars_num)
+        predIdx = torch.argmax(outputs,dim = 2)
+        key_list = list(charsDict.keys())
+        sentence = ""
+        last_idx = 1
+        for l in range(predIdx.shape[1]): # max_length
+            pIdx = predIdx[0][l].cpu().detach().numpy()
+            if pIdx == 1:
+                break
+            elif pIdx != 0 and pIdx != last_idx :
+                sentence += key_list[predIdx[0][l]]
+                last_idx = pIdx
+        preds.append(sentence)
+        ans.append(labels[0])
+    score = 0
+    for i in range(len(ans)): # all data
+        score += lvd(preds[i],ans[i]) / max(len(preds[i]),len(ans[i]))
+    score = 1 - score / len(ans)
+    return score
 
 def labels_IndexAndLength(labels,charsDict):
     global option_max_length
@@ -113,6 +152,6 @@ if __name__ == "__main__":
     train()
     with open('lost_word.txt','w',encoding = 'utf-8') as f:
         for char in lost_word:
-            f.write(char)
+            f.write(char+'\n')
 
 

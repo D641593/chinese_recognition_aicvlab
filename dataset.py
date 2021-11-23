@@ -31,9 +31,8 @@ class STRDataset(torch.utils.data.Dataset):
             self.charsDict['EOS'] = 1
             idx = 2
             for char in txt:
-                if re.search(u'[\u4e00-\u9fff]',char):
-                    self.charsDict[char[0]] = idx # char[0] to expect '\n'
-                    idx += 1
+                self.charsDict[char[0]] = idx # char[0] to expect '\n'
+                idx += 1
             self.charsDict['@'] = len(self.charsDict)
 
     def __getitem__(self, idx):

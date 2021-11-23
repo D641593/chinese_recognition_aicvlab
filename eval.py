@@ -36,16 +36,13 @@ def eval():
     model.to(device)
     # set model to eval mode
     model.eval()
-    # epoch for training
     preds = []
     ans = []
     for imgs,labels in data_loader:
         # load img and label
         imgs = torch.stack(list(img.to(device) for img in imgs))
         labels = list(labels)
-        # pred and calculate ctc loss
         outputs = model(imgs) # Batch_size / max_length / class_num(chars_num)
-        # print(sum(outputs[0,0,:]))
         predIdx = torch.argmax(outputs,dim = 2)
 
         key_list = list(charsDict.keys())
