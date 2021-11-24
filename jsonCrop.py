@@ -21,11 +21,41 @@ def getTargetPoints(points):
 
 def warpImg(img,points):
     points = np.array(points,dtype=np.float32)
+    points = points.reshape(4,2)
+    points = orderPoints(points)
     targets,shape = getTargetPoints(points)
     M = cv2.getPerspectiveTransform(points,targets)
     transImg = cv2.warpPerspective(img,M,shape,cv2.INTER_LINEAR)
     return transImg
 
+def orderPoints(points):
+    mw = points[:,0].mean()
+    mh = points[:,1].mean()
+    order = []
+    for point in points:
+      x = point[0] - mw
+      y = point[1] - mh
+      if x < 0 and y < 0:
+        if 0 in order:
+          order = [0,1,2,3]
+          break
+        order.append(0)
+      elif x >= 0 and y < 0:
+        if 1 in order:
+          order = [0,1,2,3]
+          break
+        order.append(1)
+      elif x >= 0 and y >= 0:
+        if 2 in order:
+          order = [0,1,2,3]
+          break
+        order.append(2)
+      else:
+        if 3 in order:
+          order = [0,1,2,3]
+          break
+        order.append(3)
+    return points[order]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -36,9 +66,9 @@ if __name__ == '__main__':
     parser.add_argument("--img_dir",help='path of the folder of image file',type = str,
                         default='train_high/img/')
     parser.add_argument("--output_dir", help = 'output path of crop image', type = str,
-                        default='train_high_crop2/')
+                        default='train_high_crop3/')
     parser.add_argument("--label_fileName", help = 'output path of fileName.txt', type = str,
-                        default='train_high_crop_list2.txt')  
+                        default='train_high_crop_list3.txt')  
 
     args = parser.parse_args()
     main_dir = args.main_dir

@@ -12,7 +12,7 @@ def train():
     logging.basicConfig(level=logging.INFO,filename='STRtrainLog.log',filemode='w',format=log_format,force = True)
     # device 
     deviceName = 'cuda' if torch.cuda.is_available() else 'cpu'
-    device = torch.device(deviceName)
+    device = torch.device(deviceName)ttttttttttttttttttttttttttttttttttttttt
     logging.info('train using %s'%deviceName)
     print('train using ',deviceName)
     # parameter for dataLoader
@@ -20,12 +20,14 @@ def train():
     max_length = 40+1
     # data_loader
     dataset_STR = STRDataset(root='train_data',labelPath='train_high_crop_list2.txt',charsetPath='myDict.txt')
+    train_size = dataset_STR.__len__() * 0.9
+    valid_size = dataset_STR.__len__() - train_size
+    train_dataset, valid_dataset = torch.utils.data.random_split(dataset_STR,[train_size,valid_size])
     data_loader = torch.utils.data.DataLoader(
-        dataset_STR, batch_size = batch_size, shuffle = True, num_workers = 0, collate_fn = collate_fn
+        train_dataset, batch_size = batch_size, shuffle = True, num_workers = 0, collate_fn = collate_fn
     )
-    dataset_STR_eval = STRDataset(root='train_data',labelPath='public_crop_list2.txt',charsetPath='myDict.txt')
-    data_loader_eval = torch.utils.data.DataLoader(
-        dataset_STR_eval, batch_size = 1, shuffle = False, num_workers = 0, collate_fn = collate_fn
+    data_loader_valid = torch.utils.data.DataLoader(
+        valid_dataset, batch_size = 1, shuffle = False, num_workers = 0, collate_fn = collate_fn
     )
     # chars dictionary
     charsDict = dataset_STR.charsDict
@@ -35,14 +37,14 @@ def train():
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr = 0.0001)
     loss_fn = nn.CTCLoss()
-    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer,T_max=2000)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer,T_max=20000)
     # set model to train mode
     model.train()
     # parameter for training and save
     step = 1
     epoches = 300
     log_step = 100
-    best_eval = 0.0
+    best_valid = 0.0
     model_save_flag = False
     epoch_datanum = math.ceil(dataset_STR.__len__() / batch_size)
     model_save_root = 'train_models'
@@ -50,7 +52,7 @@ def train():
     if not os.path.exists(os.path.join(os.getcwd(),model_save_root,model_save_dir)):
         os.mkdir(os.path.join(os.getcwd(),model_save_root,model_save_dir))
     model_save_epoch = 50 # save model every xxx epoch while training
-    model_eval_epoch = 30 # eval model every xxx epoch while training
+    model_valid_epoch = 30 # valid model every xxx epoch while training
     # epoch for training
     for epoch in range(epoches):
         for imgs,labels in data_loader:
@@ -76,12 +78,12 @@ def train():
                 # print("epoch: [%d] step: %d / %d, loss is %3.5f, lr : %3.5f"%(epoch,step%epoch_datanum,epoch_datanum,loss,optimizer.param_groups[0]["lr"]))
             step += 1
         
-        # model eval
-        if epoch%model_eval_epoch == 0:
-            logging.info("epoch %d eval!"%(epoch))
-            score = eval(data_loader_eval,model,device,charsDict)
+        # model valid
+        if epoch%model_valid_epoch == 0:
+            logging.info("epoch %d valid!"%(epoch))
+            score = valid(data_loader_valid,model,device,charsDict)
             logging.info("1_NED : " + str(score))
-            if score > best_eval:
+            if score > best_valid:
                 model_save_flag = True
         # model save
         if epoch % model_save_epoch == 0 or model_save_flag:
@@ -96,7 +98,7 @@ def train():
     torch.save(model.state_dict(),path)
     logging.info("That's it! model save at "+str(path))
 
-def eval(dataloader,model,device,charsDict):
+def valid(dataloader,model,device,charsDict):
     model.eval()
     preds = []
     ans = []
