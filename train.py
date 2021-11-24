@@ -12,15 +12,15 @@ def train():
     logging.basicConfig(level=logging.INFO,filename='STRtrainLog.log',filemode='w',format=log_format,force = True)
     # device 
     deviceName = 'cuda' if torch.cuda.is_available() else 'cpu'
-    device = torch.device(deviceName)ttttttttttttttttttttttttttttttttttttttt
+    device = torch.device(deviceName)
     logging.info('train using %s'%deviceName)
     print('train using ',deviceName)
     # parameter for dataLoader
     batch_size = 8
     max_length = 40+1
     # data_loader
-    dataset_STR = STRDataset(root='train_data',labelPath='train_high_crop_list2.txt',charsetPath='myDict.txt')
-    train_size = dataset_STR.__len__() * 0.9
+    dataset_STR = STRDataset(root='train_data',labelPath='train_high_crop_list3.txt',charsetPath='myDict.txt')
+    train_size = int(dataset_STR.__len__() * 0.9)
     valid_size = dataset_STR.__len__() - train_size
     train_dataset, valid_dataset = torch.utils.data.random_split(dataset_STR,[train_size,valid_size])
     data_loader = torch.utils.data.DataLoader(
