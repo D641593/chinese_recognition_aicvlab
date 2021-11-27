@@ -56,6 +56,8 @@ def collate_fn(batch):
 def get_transforms(h,w):
     ratio = img_except_h / h
     ratio_w = int(ratio * w)
+    if ratio_w > img_except_w:
+        ratio_w = img_except_w
     return transforms.Compose([
         transforms.ToTensor(),
         transforms.Resize((img_except_h,ratio_w))
