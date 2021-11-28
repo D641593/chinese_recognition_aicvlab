@@ -17,22 +17,22 @@ def eval():
     print('eval using ',deviceName)
     # parameter for dataLoader
     batch_size = 1
-    max_length = 30+1
+    max_length = 40+1
     # data_loader
-    dataset_STR = STRDataset(root='train_data',labelPath='train_crop_list.txt',charsetPath='chinese_cht_dict.txt')
+    dataset_STR = STRDataset(root='train_data',labelPath='public_crop_list.txt',charsetPath='myDict.txt')
     data_loader = torch.utils.data.DataLoader(
         dataset_STR, batch_size = batch_size, shuffle = False, num_workers = 0, collate_fn = collate_fn
     )
     # chars dictionary
     charsDict = dataset_STR.charsDict
     # model
-    model = clsScore(len(charsDict.keys()))
+    model = clsScore(len(charsDict.keys()),max_length)
     # parameter for eval
     model_save_root = 'train_models'
-    model_save_dir = "first_STR_model"
+    model_save_dir = "merge_STR_model"
     if not os.path.exists(os.path.join(os.getcwd(),model_save_root,model_save_dir)):
         raise NameError("model path not exists")
-    model.load_state_dict(torch.load(os.path.join(model_save_root,model_save_dir,"epoch_250.pth")))
+    model.load_state_dict(torch.load(os.path.join(model_save_root,model_save_dir,"epoch_40.pth")))
     model.to(device)
     # set model to eval mode
     model.eval()
@@ -63,5 +63,6 @@ def eval():
         score += lvd(preds[i],ans[i]) / max(len(preds[i]),len(ans[i]))
     score = 1 - score / len(ans)
     logging.info("1_NED : " + str(score))
+
 if __name__ == "__main__":
     eval()

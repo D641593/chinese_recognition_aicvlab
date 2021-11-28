@@ -33,26 +33,27 @@ def train():
     charsDict = dataset_STR.charsDict
     # model
     model = clsScore(len(charsDict.keys()),max_length)
+    model.load_state_dict(torch.load("train_models/merge_STR_model/epoch_40.pth"))
     model.to(device)
     # optimizer
-    optimizer = optim.Adam(model.parameters(), lr = 0.0001)
+    optimizer = optim.Adam(model.parameters(), lr = 0.00005)
     loss_fn = nn.CTCLoss()
-    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer,T_max=20000)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer,T_max=2000)
     # set model to train mode
     model.train()
     # parameter for training and save
     step = 1
-    epoches = 300
-    log_step = 100
+    epoches = 100
+    log_step = 1000
     best_valid = 0.0
     model_save_flag = False
-    epoch_datanum = math.ceil(dataset_STR.__len__() / batch_size)
+    epoch_datanum = math.ceil(train_dataset.__len__() / batch_size)
     model_save_root = 'train_models'
-    model_save_dir = "merge_STR_model"
+    model_save_dir = "merge2_STR_model"
     if not os.path.exists(os.path.join(os.getcwd(),model_save_root,model_save_dir)):
         os.mkdir(os.path.join(os.getcwd(),model_save_root,model_save_dir))
-    model_save_epoch = 50 # save model every xxx epoch while training
-    model_valid_epoch = 30 # valid model every xxx epoch while training
+    model_save_epoch = 20 # save model every xxx epoch while training
+    model_valid_epoch = 10 # valid model every xxx epoch while training
     # epoch for training
     for epoch in range(epoches):
         for imgs,labels in data_loader:

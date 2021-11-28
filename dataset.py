@@ -6,7 +6,7 @@ from PIL import Image
 import torch.nn as nn
 import re
 
-img_except_h, img_except_w = 32,512
+img_except_h, img_except_w = 32,512 # 32,512
 class STRDataset(torch.utils.data.Dataset):
     def __init__(self, root, labelPath, charsetPath):
         self.root = root
@@ -60,6 +60,9 @@ def get_transforms(h,w):
         ratio_w = img_except_w
     return transforms.Compose([
         transforms.ToTensor(),
-        transforms.Resize((img_except_h,ratio_w))
+        transforms.Resize((img_except_h,ratio_w)),
+        transforms.RandomRotation((-10,10)),
+        transforms.RandomCrop((img_except_h,ratio_w),pad_if_needed=True),
+        transforms.RandomPerspective(distortion_scale=0.5, p = 0.3)
     ])
 
