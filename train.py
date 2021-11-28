@@ -86,6 +86,7 @@ def train():
             logging.info("1_NED : " + str(score))
             if score > best_valid:
                 model_save_flag = True
+            model.train()
         # model save
         if epoch % model_save_epoch == 0 or model_save_flag:
             model_save_name = "epoch_"+str(epoch)+".pth"
