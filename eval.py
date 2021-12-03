@@ -44,7 +44,6 @@ def eval():
         labels = list(labels)
         outputs = model(imgs) # Batch_size / max_length / class_num(chars_num)
         predIdx = torch.argmax(outputs,dim = 2)
-
         key_list = list(charsDict.keys())
         sentence = ""
         last_idx = 1

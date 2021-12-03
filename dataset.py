@@ -8,13 +8,14 @@ import re
 
 img_except_h, img_except_w = 32,512 # 32,512
 class STRDataset(torch.utils.data.Dataset):
-    def __init__(self, root, labelPath, charsetPath):
+    def __init__(self, root, labelPath, charsetPath,train=True):
         self.root = root
         self.labelPath = labelPath
         self.charsetPath = charsetPath
         self.imgPaths = []
         self.labels = []
         self.charsDict = {}
+        self.train = train
         with open(os.path.join(self.root, self.labelPath),'r',encoding = 'utf-8') as f:
             txt = f.readlines()
             for row in txt:
@@ -38,7 +39,10 @@ class STRDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img = Image.open(self.imgPaths[idx])
         label = self.labels[idx]
-        trans = get_transforms(img.height,img.width)
+        if self.train:
+            trans = get_train_transforms(img.height,img.width)
+        else:
+            trans = get_eval_transforms(img.height,img.width)
         img = trans(img)
         w = img.shape[2]
         half = (img_except_w - w) // 2
@@ -53,7 +57,7 @@ class STRDataset(torch.utils.data.Dataset):
 def collate_fn(batch):
     return tuple(zip(*batch))
 
-def get_transforms(h,w):
+def get_train_transforms(h,w):
     ratio = img_except_h / h
     ratio_w = int(ratio * w)
     if ratio_w > img_except_w:
@@ -64,5 +68,15 @@ def get_transforms(h,w):
         transforms.RandomRotation((-10,10)),
         transforms.RandomCrop((img_except_h,ratio_w),pad_if_needed=True),
         transforms.RandomPerspective(distortion_scale=0.5, p = 0.3)
+    ])
+
+def get_eval_transforms(h,w):
+    ratio = img_except_h / h
+    ratio_w = int(ratio * w)
+    if ratio_w > img_except_w:
+        ratio_w = img_except_w
+    return transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize((img_except_h,ratio_w))
     ])
 
