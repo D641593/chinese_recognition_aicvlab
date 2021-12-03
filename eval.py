@@ -19,7 +19,7 @@ def eval():
     batch_size = 1
     max_length = 40+1
     # data_loader
-    dataset_STR = STRDataset(root='train_data',labelPath='public_crop_list.txt',charsetPath='myDict.txt')
+    dataset_STR = STRDataset(root='train_data',labelPath='train_high_crop_list3.txt',charsetPath='myDict.txt')
     data_loader = torch.utils.data.DataLoader(
         dataset_STR, batch_size = batch_size, shuffle = False, num_workers = 0, collate_fn = collate_fn
     )
@@ -29,7 +29,7 @@ def eval():
     model = clsScore(len(charsDict.keys()),max_length)
     # parameter for eval
     model_save_root = 'train_models'
-    model_save_dir = "merge_STR_model"
+    model_save_dir = "merge2_STR_model"
     if not os.path.exists(os.path.join(os.getcwd(),model_save_root,model_save_dir)):
         raise NameError("model path not exists")
     model.load_state_dict(torch.load(os.path.join(model_save_root,model_save_dir,"epoch_40.pth")))
@@ -54,6 +54,8 @@ def eval():
             elif pIdx != 0 and pIdx != last_idx :
                 sentence += key_list[predIdx[0][l]]
                 last_idx = pIdx
+            elif pIdx == 0:
+                last_idx = 0
         preds.append(sentence)
         ans.append(labels[0])
     score = 0

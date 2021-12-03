@@ -120,6 +120,8 @@ def valid(dataloader,model,device,charsDict):
             elif pIdx != 0 and pIdx != last_idx :
                 sentence += key_list[predIdx[0][l]]
                 last_idx = pIdx
+            elif pIdx == 0:
+                last_idx = 0
         preds.append(sentence)
         ans.append(labels[0])
     score = 0

@@ -1,16 +1,18 @@
 import logging
 import torch
-from os
+import os
 from dataset import *
 from model import *
 from PIL import Image
 
+img_except_h, img_except_w = 32,512 # 32,512
 def demo(image_fname):
     # logging
     log_format = '%(asctime)s %(levelname)s %(message)s'
     logging.basicConfig(level=logging.INFO,filename='STRdemoLog.log',filemode='a',format=log_format,force = True)
     # device 
-    deviceName = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # deviceName = 'cuda' if torch.cuda.is_available() else 'cpu'
+    deviceName = 'cpu'
     device = torch.device(deviceName)
     logging.info('demo using %s'%deviceName)
     print('demo using ',deviceName)
@@ -30,15 +32,25 @@ def demo(image_fname):
     model = clsScore(len(charsDict.keys()),max_length)
     model.load_state_dict(torch.load("train_models/merge2_STR_model/epoch_80.pth"))
     model.to(device)
+    model.eval()
     # image
     img = Image.open(image_fname)
-    trans = get_eval_transforms()
+    trans = get_eval_transforms(img.height,img.width)
     img = trans(img)
-    img = torch.unsqueeze(img) # batch_size = 1
+    img = torch.unsqueeze(img,dim=0) # batch_size = 1
+    w = img.shape[3]
+    print(img.shape)
+    half = (img_except_w - w) // 2
+    offset = (img_except_w - w) % 2
+    p1d = (half,half+offset)
+    img = nn.functional.pad(img,p1d,'constant',0)
+    print(img.shape)
     # predict
     pred = model(img)
-    predIdx = torch.argmax(outputs,dim=2)
-    predconfs = torch.max(outputs,dim=2)
+    predIdx = torch.argmax(pred,dim=2)
+    predconfs = torch.max(pred,dim=2).values
+    print(predIdx)
+    print(predconfs)
     key_list = list(charsDict.keys())
     sentence = ""
     confs = []
@@ -49,15 +61,17 @@ def demo(image_fname):
             break
         elif pIdx != 0 and pIdx != last_idx :
             sentence += key_list[predIdx[0][l]]
-            confs.append(predconfs[0][l])
+            confs.append(str(predconfs[0][l].detach().numpy()))
             last_idx = pIdx
+        elif pIdx == 0:
+            last_idx = 0
 
     logging.info("%s predict result : %s"%(image_fname,sentence))
     print("%s predict result : %s"%(image_fname,sentence))
     logging.info("predict confidence : %s"%(",".join(confs)))
-    print("predict confidence : %s"%(",".join(confs))
+    print("predict confidence : %s"%(",".join(confs)))
 
 if __name__ == "__main__":
-    image_fname = "testImg.jpg"
-    demo(image_fname)
+    imgpath = "train_data/train_high_crop3/img_9964_1.jpg"
+    demo(imgpath)
 
